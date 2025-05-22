@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/kashgarg/lockbox/backend/router"
 )
 
 func main() {
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "LockBox API is up and running!")
-	})
+	router.SetupRoutes()
 
 	port := ":8080"
-	fmt.Printf("Server is running on http://localhost%s\n", port)
+	fmt.Printf("Server running at http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
+
