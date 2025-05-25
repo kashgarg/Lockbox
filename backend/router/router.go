@@ -1,11 +1,16 @@
 package router
 
 import (
-	"net/http"
-
+	"github.com/gorilla/mux"
 	"github.com/kashgarg/lockbox/backend/handlers"
 )
 
-func SetupRoutes() {
-	http.HandleFunc("/health", handlers.HealthCheck)
+func SetupRoutes() *mux.Router {
+	r := mux.NewRouter()
+
+	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
+	r.HandleFunc("/vaultitems", handlers.CreateVaultItem).Methods("POST")
+	r.HandleFunc("/vaultitems", handlers.GetVaultItems).Methods("GET")
+
+	return r
 }
