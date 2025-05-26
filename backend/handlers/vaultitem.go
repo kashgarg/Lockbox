@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	"github.com/kashgarg/lockbox/backend/db"
 	"github.com/kashgarg/lockbox/backend/models"
 	"github.com/kashgarg/lockbox/backend/utils"
@@ -72,9 +74,63 @@ func GetVaultItems(w http.ResponseWriter, r *http.Request) {
 		}
 		item.Password = decryptedPassword
 
-
 		items = append(items, item)
 	}
 
 	json.NewEncoder(w).Encode(items)
+}
+
+func UpdateVaultItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	var item models.VaultItem
+	err := json.NewDecoder(r.Body).Decode(&item)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	encryptedPassword, err := utils.Encrypt(item.Password)
+	if err != nil {
+		http.Error(w, "Failed to encrypt password", http.StatusInternalServerError)
+		fmt.Println("Encryption error:", err)
+		return
+	}
+
+	query := `UPDATE vault_items SET title=$1, username=$2, password=$3, notes=$4 WHERE id=$5`
+	_, err = db.Conn.Exec(context.Background(), query, item.Title, item.Username, encryptedPassword, item.Notes, id)
+	if err != nil {
+		http.Error(w, "Failed to update item", http.StatusInternalServerError)
+		fmt.Println("Update error:", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Item updated successfully")
+}
+
+func DeleteVaultItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	query := `DELETE FROM vault_items WHERE id=$1`
+
+	_, err := db.Conn.Exec(context.Background(), query, id)
+	if err != nil {
+		http.Error(w, "Failed to delete item", http.StatusInternalServerError)
+		fmt.Println("Delete error:", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Item deleted successfully")
 }
