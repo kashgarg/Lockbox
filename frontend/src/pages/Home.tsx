@@ -1,5 +1,5 @@
+import VaultForm from "../components/VaultForm";
 import { VaultList } from "../components/VaultList";
-import { VaultForm } from "../components/VaultForm";
 import { useState } from "react";
 
 export default function Home() {

@@ -88,6 +88,7 @@ func UpdateVaultItem(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
+
 	var item models.VaultItem
 	err := json.NewDecoder(r.Body).Decode(&item)
 	if err != nil {
@@ -102,6 +103,7 @@ func UpdateVaultItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Perform the update
 	query := `UPDATE vault_items SET title=$1, username=$2, password=$3, notes=$4 WHERE id=$5`
 	_, err = db.Conn.Exec(context.Background(), query, item.Title, item.Username, encryptedPassword, item.Notes, id)
 	if err != nil {
@@ -110,8 +112,27 @@ func UpdateVaultItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Item updated successfully")
+	// Fetch the updated item
+	query = `SELECT id, title, username, password, notes, created_at FROM vault_items WHERE id=$1`
+	err = db.Conn.QueryRow(context.Background(), query, id).Scan(
+		&item.ID, &item.Title, &item.Username, &item.Password, &item.Notes, &item.CreatedAt,
+	)
+	if err != nil {
+		http.Error(w, "Failed to fetch updated item", http.StatusInternalServerError)
+		fmt.Println("Fetch after update error:", err)
+		return
+	}
+
+	// Decrypt password before sending to client
+	item.Password, err = utils.Decrypt(item.Password)
+	if err != nil {
+		http.Error(w, "Failed to decrypt password", http.StatusInternalServerError)
+		fmt.Println("Decryption error:", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(item)
 }
 
 func DeleteVaultItem(w http.ResponseWriter, r *http.Request) {

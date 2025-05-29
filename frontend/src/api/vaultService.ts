@@ -19,4 +19,22 @@ export async function createVaultItem(item: Omit<VaultItem, "id" | "created_at">
     }
     return res.json();
   }
+
+  export async function deleteVaultItem(id: number) {
+    const res = await fetch(`http://localhost:8080/vaultitems/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete item");
+  }  
+
+  export async function updateVaultItem(id: number, data: Partial<VaultItem>) {
+    const res = await fetch(`http://localhost:8080/vaultitems/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update item");
+    return res.json();
+  }
+  
   

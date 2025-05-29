@@ -1,14 +1,31 @@
-import { useState } from "react";
-import { createVaultItem } from "../api/vaultService";
+import { useEffect, useState } from "react";
+import { createVaultItem, updateVaultItem } from "../api/vaultService";
+import { VaultItem } from "../types";
 
-export function VaultForm({ onSuccess }: { onSuccess: () => void }) {
+type Props = {
+  onSuccess?: (item: VaultItem) => void;
+  editingItem?: VaultItem;
+  onUpdate?: (item: VaultItem) => void;
+};
+
+export default function VaultForm({ onSuccess, editingItem, onUpdate }: Props) {
   const [form, setForm] = useState({
     title: "",
     username: "",
     password: "",
     notes: "",
   });
-  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (editingItem) {
+      setForm({
+        title: editingItem.title,
+        username: editingItem.username,
+        password: editingItem.password,
+        notes: editingItem.notes,
+      });
+    }
+  }, [editingItem]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,53 +34,63 @@ export function VaultForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createVaultItem(form);
-      onSuccess();
-      setForm({ title: "", username: "", password: "", notes: "" });
-    } catch (err: any) {
-      setError("Failed to create vault item.");
-      console.error(err);
+      if (editingItem) {
+        const updated = await updateVaultItem(editingItem.id, form);
+        onUpdate?.(updated);
+      } else {
+        const created = await createVaultItem(form);
+        onSuccess?.(created);
+        setForm({ title: "", username: "", password: "", notes: "" });
+      }
+    } catch (err) {
+      alert("Error saving item");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-xl shadow-sm bg-white mb-6">
-      {error && <p className="text-red-500">{error}</p>}
+    <form onSubmit={handleSubmit} className="space-y-3 bg-white p-4 rounded shadow">
+      <h2 className="text-xl font-semibold">
+        {editingItem ? "Edit Vault Item" : "Add Vault Item"}
+      </h2>
       <input
+        className="border p-2 w-full"
         name="title"
+        placeholder="Title"
         value={form.title}
         onChange={handleChange}
-        placeholder="Title"
-        className="w-full p-2 border rounded"
         required
       />
       <input
+        className="border p-2 w-full"
         name="username"
+        placeholder="Username"
         value={form.username}
         onChange={handleChange}
-        placeholder="Username"
-        className="w-full p-2 border rounded"
         required
       />
       <input
-        name="password"
-        value={form.password}
-        onChange={handleChange}
-        placeholder="Password"
-        type="password"
-        className="w-full p-2 border rounded"
-        required
+      type="password"
+      className="border p-2 w-full"
+      name="password"
+      placeholder="Password"
+      value={form.password}
+      onChange={handleChange}
+      required
       />
       <textarea
+        className="border p-2 w-full"
         name="notes"
+        placeholder="Notes"
         value={form.notes}
         onChange={handleChange}
-        placeholder="Notes"
-        className="w-full p-2 border rounded"
       />
-      <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-        Add Item
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-4 py-2 rounded"
+      >
+        {editingItem ? "Update" : "Create"}
       </button>
     </form>
   );
 }
+
