@@ -7,11 +7,14 @@ export function VaultList() {
   const [items, setItems] = useState<VaultItem[]>([]);
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     getVaultItems()
       .then(setItems)
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id: number) => {
@@ -35,42 +38,45 @@ export function VaultList() {
     setEditingItem(null);
   };
 
+  if (loading) return <p>Loading vault items...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
-  if (!items.length) return <p>Loading...</p>;
+  if (!items.length) return <p>No vault items found.</p>;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4">
       {editingItem && (
         <VaultForm editingItem={editingItem} onUpdate={handleUpdate} />
       )}
-
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className="border rounded-xl p-4 shadow-md bg-white"
-        >
-          <h3 className="text-lg font-bold">{item.title}</h3>
-          <p><strong>Username:</strong> {item.username}</p>
-          <p><strong>Password:</strong> {item.password}</p>
-          <p><strong>Notes:</strong> {item.notes}</p>
-          <p className="text-sm text-gray-500">Created: {item.created_at}</p>
-
-          <div className="mt-2 space-x-2">
-            <button
-              onClick={() => handleEdit(item)}
-              className="bg-blue-500 text-white px-3 py-1 rounded"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => handleDelete(item.id)}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Delete
-            </button>
+  
+      <div className="vault-items-grid">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="vault-item-card"
+          >
+            <h3 className="text-lg font-bold">{item.title}</h3>
+            <p><strong>Username:</strong> {item.username}</p>
+            <p><strong>Password:</strong> {item.password}</p>
+            <p><strong>Notes:</strong> {item.notes}</p>
+            <p className="text-sm text-gray-500">Created: {item.created_at}</p>
+  
+            <div className="mt-2 space-x-2">
+              <button
+                onClick={() => handleEdit(item)}
+                className="bg-blue-500 text-white px-3 py-1 rounded"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(item.id)}
+                className="bg-red-500 text-white px-3 py-1 rounded"
+              >
+                Delete
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
